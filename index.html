@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Tenora Device — Consent</title>
+<!--
+  STATIC admin-consent landing page (GitHub Pages) — the durable, always-up
+  redirect target of the Tenora Device admin-consent links. Microsoft appends
+  ?admin_consent=True&tenant=<guid> on success or ?error=...&error_description=...
+  on failure; this page renders the outcome client-side. It stores NOTHING,
+  calls NOTHING, and collects NOTHING — pure confirmation. All query params are
+  rendered via textContent (never innerHTML) so hostile params cannot inject
+  markup. Source of truth: docs/consent-landing/index.html in tenora-device-beta;
+  deployed copy lives in the public Pages repo. Keep the two in sync.
+  Mirrors src/api/routers/consent.py:consent_complete (the API-served variant).
+-->
+<style>
+  body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#0f0f13;color:#d6d6de;margin:0;padding:24px 12px}
+  .card{max-width:640px;margin:8vh auto 0;background:#17171c;border:1px solid #2b2b33;border-radius:12px;overflow:hidden}
+  .head{padding:18px 26px;border-bottom:1px solid #2b2b33;font-size:19px;font-weight:600;color:#fff}
+  .head b{color:#FF7900}
+  .body{padding:22px 26px;font-size:14px;line-height:1.7}
+  h1{font-size:17px;margin:0 0 10px}
+  .ok h1{color:#2ecc71}.err h1{color:#e74c3c}.bare h1{color:#9a9aa2}
+  code{background:#232329;border-radius:4px;padding:1px 5px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="card"><div class="head">Tenora <b>Device</b></div>
+<div class="body" id="out"><h1>Tenora Device — consent landing</h1>
+<div>This page confirms the outcome of the Microsoft admin-consent step. Open the
+consent link from the e-mail you received to grant (or review) access.</div></div></div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var out = document.getElementById("out");
+  function build(cls, heading, parts) {
+    out.className = "body " + cls;
+    out.textContent = "";
+    var h = document.createElement("h1");
+    h.textContent = heading;
+    out.appendChild(h);
+    var d = document.createElement("div");
+    parts.forEach(function (p) {
+      if (p.code) { var c = document.createElement("code"); c.textContent = p.code; d.appendChild(c); }
+      else if (p.br) { d.appendChild(document.createElement("br")); }
+      else { d.appendChild(document.createTextNode(p.text)); }
+    });
+    out.appendChild(d);
+  }
+  if ((q.get("admin_consent") || "").toLowerCase() === "true") {
+    var parts = [{ text: "Your organisation has granted Tenora Device the permissions listed on the consent document" }];
+    if (q.get("tenant")) { parts.push({ text: " (tenant " }, { code: q.get("tenant") }, { text: ")" }); }
+    parts.push({ text: ". Nothing more is needed from you — your Tenora contact continues the onboarding and you will receive the assessment report by e-mail. You can close this page. You can revoke this at any time by deleting the Tenora enterprise application in your Microsoft Entra admin center." });
+    build("ok", "Consent received — thank you!", parts);
+  } else if (q.get("error")) {
+    var p = [{ text: "Microsoft reported: " }, { code: q.get("error") }];
+    if (q.get("error_description")) { p.push({ text: " — " + q.get("error_description") }); }
+    p.push({ br: true }, { br: true },
+      { text: "Common causes: the signed-in account is not a Global Administrator of your organisation's tenant, or the wrong account was picked. Please sign in with your organisation's Global Administrator account and open the consent link from the e-mail again — or contact your Tenora contact person." });
+    build("err", "Consent was not completed", p);
+  }
+})();
+</script>
+</body>
+</html>
